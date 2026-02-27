@@ -1,0 +1,7 @@
+{
+  "name": "RetouchAI Pro",
+  "description": "Professional AI-powered skin retouching agent inspired by Retouch4me, featuring Dodge & Burn, Skin Tone correction, and high-end portrait editing across Mac, iPad, and iPhone.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
