@@ -46,39 +46,43 @@ const ManualModal: React.FC<ManualModalProps> = ({ onClose }) => {
     // SECTIONS
     const sections = [
       {
-        title: "1. Introduzione",
-        content: "RetouchAI Pro è un agente neurale progettato per emulare il flusso di lavoro manuale (D&B, Frequenze). L'obiettivo è mantenere la texture della pelle eliminando solo le imperfezioni."
+        title: "1. Filosofia & Visione",
+        content: "RetouchAI Pro ridefinisce il concetto di editing. Non ci limitiamo ad applicare filtri distruttivi; il nostro agente neurale emula fedelmente le tecniche di Dodge & Burn e Separazione delle Frequenze utilizzate nei migliori studi di post-produzione al mondo."
       },
       {
-        title: "2. Formati Supportati & RAW",
+        title: "2. Sicurezza & Architettura Full-Stack",
+        content: "La versione PRO adotta un'architettura Full-Stack professionale. Tutte le chiamate AI vengono gestite da un server sicuro. La tua identità e le tue chiavi di accesso sono invisibili all'esterno, garantendo una protezione di livello enterprise."
+      },
+      {
+        title: "3. Formati Supportati & RAW",
         content: "Supportiamo JPEG, PNG, WEBP, HEIC (Apple) e formati RAW (.ARW, .CR2, .NEF, .DNG). Nota: Su Mac/PC i RAW dipendono dal browser. Su iPad/iPhone la conversione è nativa e automatica."
       },
       {
-        title: "3. Flusso di Lavoro (Smart Workflow)",
+        title: "4. Flusso di Lavoro (Smart Workflow)",
         content: "La sequenza corretta è matematica: 1. Heal (Pulizia) -> 2. D&B (Micro-contrasto) -> 3. Tone (Colore) -> 4. Volumes (3D). Il tasto 'Smart Workflow' esegue tutto questo in un click."
       },
       {
-        title: "4. Dettaglio Strumenti (Tools)",
+        title: "5. Dettaglio Strumenti (Tools)",
         content: RETOUCH_ACTIONS.map(a => `- ${a.label}: ${a.description}`).join('\n')
       },
       {
-        title: "5. Guida Interfaccia: Header (In Alto)",
+        title: "6. Guida Interfaccia: Header (In Alto)",
         content: "- Slider / Hold / Side: Cambia la modalità di visualizzazione prima/dopo. 'Side' affianca le due versioni.\n- System Ready / GPU Accelerated: Indicatori di stato del motore neurale e accelerazione hardware.\n- IT/EN Toggle: Cambia la lingua dell'interfaccia istantaneamente.\n- Importa: Carica una o più foto (supporto Batch)."
       },
       {
-        title: "6. Guida Interfaccia: Sidebar (Strumenti)",
+        title: "7. Guida Interfaccia: Sidebar (Strumenti)",
         content: "- Presets Tab: Flussi di lavoro editoriali completi (es. Vogue Cover) che combinano più azioni AI.\n- Sync Settings: Sincronizza le impostazioni della foto corrente su tutto il batch caricato.\n- Batch Process: Elabora automaticamente tutte le immagini in coda con l'azione selezionata.\n- Auto Masking (Icona Scudo): Se attivo, l'AI seleziona automaticamente solo la pelle/soggetto."
       },
       {
-        title: "7. Color Grading Professionale",
+        title: "8. Color Grading Professionale",
         content: "- Istogramma Live: Monitora in tempo reale la distribuzione di Luci, Ombre e canali RGB.\n- Curve di Viraggio (Tone Curves): Controllo chirurgico su RGB, Rosso, Verde e Blu tramite punti di controllo.\n- HSL & Split Toning: Regolazione fine di Tonalità, Saturazione e Luminanza per ogni singolo colore.\n- Auto Adjust: Algoritmo intelligente per il bilanciamento automatico di esposizione e contrasto."
       },
       {
-        title: "8. Persistenza & Salvataggio Progetto",
+        title: "9. Persistenza & Salvataggio Progetto",
         content: "- Project Persistence (IndexedDB): Il tuo lavoro viene salvato automaticamente ogni 30 secondi nella memoria locale del dispositivo. Anche se chiudi il browser, ritroverai tutto al riavvio.\n- Carica Ultimo: Ripristina istantaneamente l'ultima sessione di lavoro con un solo click.\n- Esporta/Importa Sessione (.apex): Permette di scaricare l'intero stato del lavoro (foto, ritocchi, testi) in un file esterno. Ideale per liberare spazio sul dispositivo salvando su Pendrive o HD esterni."
       },
       {
-        title: "9. Esportazione & Metadata",
+        title: "10. Esportazione & Metadata",
         content: "- Esporta: Configura formato (JPG/PNG/WebP), qualità e preservazione metadati EXIF.\n- Metadata Panel (Icona Info): Visualizza dati tecnici dell'immagine e log dell'elaborazione neurale."
       }
     ];
@@ -128,17 +132,43 @@ const ManualModal: React.FC<ManualModalProps> = ({ onClose }) => {
                 L'Eccellenza del Ritocco <br/>
                 <span className="text-indigo-600">Incontra l'Intelligenza Artificiale.</span>
               </h1>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed italic">
-                "Benvenuti in RetouchAI PRO. Abbiamo progettato questo strumento per i professionisti che non accettano compromessi: la potenza del calcolo neurale unita alla sensibilità estetica del fotografo. Smettete di perdere ore in compiti ripetitivi e concentratevi sulla vostra visione creativa."
-              </p>
+              <div className="space-y-6">
+                <p className="text-xl text-slate-700 max-w-3xl mx-auto leading-relaxed font-medium">
+                  "Benvenuti nell'era del fotoritocco intelligente. RetouchAI PRO non è solo uno strumento, è il vostro assistente neurale personale, progettato per elevare ogni scatto alla perfezione editoriale con la precisione di un chirurgo e l'occhio di un artista."
+                </p>
+                <p className="text-slate-500 max-w-2xl mx-auto leading-relaxed italic text-sm">
+                  Abbiamo fuso la potenza del calcolo neurale di ultima generazione con i flussi di lavoro più rigorosi della fotografia high-end. Dimenticate le ore perse in compiti ripetitivi: con RetouchAI PRO, la tecnologia lavora per voi, permettendovi di concentrarvi esclusivamente sulla vostra visione creativa.
+                </p>
+              </div>
             </section>
 
             {/* Section 1: Introduction */}
             <section className="border-b border-slate-200 pb-8">
-              <h2 className="text-3xl font-bold text-slate-900 mb-4">1. Introduzione & Filosofia</h2>
+              <h2 className="text-3xl font-bold text-slate-900 mb-4">1. Filosofia & Visione</h2>
               <p className="text-slate-600 leading-relaxed mb-4">
-                RetouchAI Pro non è un semplice filtro. È un <strong>agente neurale</strong> progettato per emulare il flusso di lavoro manuale dei ritoccatori high-end. A differenza dei software tradizionali che "piallano" la pelle (blur), questo sistema lavora sulla <strong>separazione delle frequenze</strong> e sul <strong>micro-contrasto</strong>.
+                RetouchAI Pro ridefinisce il concetto di editing. Non ci limitiamo ad applicare filtri distruttivi; il nostro <strong>agente neurale</strong> emula fedelmente le tecniche di <em>Dodge & Burn</em> e <em>Separazione delle Frequenze</em> utilizzate nei migliori studi di post-produzione al mondo. Il risultato? Una pelle perfetta che mantiene ogni singolo poro e dettaglio materico, senza mai apparire artificiale.
               </p>
+            </section>
+
+            {/* Section 1.5: Full-Stack Security - NEW SECTION */}
+            <section className="border-b border-slate-200 pb-8 bg-slate-50 -mx-8 px-8 py-8 rounded-2xl">
+              <h2 className="text-2xl font-bold text-slate-900 mb-4 flex items-center gap-3">
+                <i className="fas fa-shield-alt text-indigo-600"></i>
+                Sicurezza & Architettura Full-Stack
+              </h2>
+              <p className="text-slate-600 leading-relaxed mb-4 text-sm">
+                La versione PRO adotta un'architettura <strong>Full-Stack professionale</strong>. A differenza delle app amatoriali, RetouchAI PRO non espone mai le chiavi API nel browser.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <h3 className="font-bold text-slate-900 text-xs uppercase tracking-widest mb-2">Protezione Totale</h3>
+                  <p className="text-[11px] text-slate-500">Tutte le chiamate AI vengono gestite da un server sicuro. La tua identità e le tue chiavi di accesso sono invisibili all'esterno, garantendo una protezione di livello enterprise.</p>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <h3 className="font-bold text-slate-900 text-xs uppercase tracking-widest mb-2">Privacy dei Dati</h3>
+                  <p className="text-[11px] text-slate-500">Le immagini vengono elaborate in memoria volatile e non vengono mai archiviate permanentemente sui nostri server, rispettando i più alti standard di privacy professionale.</p>
+                </div>
+              </div>
             </section>
 
             {/* Section 2: Formats */}
