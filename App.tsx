@@ -86,6 +86,7 @@ const WelcomeScreen: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
               src={WELCOME_IMAGE_URL} 
               alt="RetouchAI Pro Welcome" 
               className="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-all duration-1000 scale-105 group-hover:scale-100" 
+              referrerPolicy="no-referrer"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=1920&h=1080";
               }}
@@ -252,10 +253,21 @@ const App: React.FC = () => {
     });
 
     // Detect faces for each new image
-    newImages.forEach(img => {
-      geminiService.detectFaces(img.originalUrl).then(faces => {
-        setBatch(prev => prev.map((b) => b.id === img.id ? { ...b, faces } : b));
-      });
+    newImages.forEach(async (img) => {
+      try {
+        const response = await fetch(img.originalUrl);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          geminiService.detectFaces(base64).then(faces => {
+            setBatch(prev => prev.map((b) => b.id === img.id ? { ...b, faces } : b));
+          });
+        };
+        reader.readAsDataURL(blob);
+      } catch (e) {
+        console.error("Face detection failed for", img.name, e);
+      }
     });
 
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -542,17 +554,22 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [batch, saveProject]);
 
+  const batchRef = useRef(batch);
+  useEffect(() => {
+    batchRef.current = batch;
+  }, [batch]);
+
   // Cleanup Object URLs on unmount
   useEffect(() => {
     return () => {
-      batch.forEach(img => {
+      batchRef.current.forEach(img => {
         if (img.originalUrl.startsWith('blob:')) URL.revokeObjectURL(img.originalUrl);
         img.history.forEach(step => {
           if (step.retouchedImage.startsWith('blob:')) URL.revokeObjectURL(step.retouchedImage);
         });
       });
     };
-  }, [batch]);
+  }, []);
 
   const addWatermark = () => {
     if (activeIdx < 0) return;
@@ -572,11 +589,11 @@ const App: React.FC = () => {
     setBatch(prev => prev.map((img, i) => i === activeIdx ? { ...img, textLayers: [...img.textLayers, newLayer] } : img));
   };
 
-  const addTextLayer = () => {
+  const addTextLayer = (initialText?: string) => {
     if (activeIdx < 0) return;
     const newLayer: TextLayer = {
       id: Math.random().toString(36).substr(2, 9),
-      text: 'Nuovo Testo',
+      text: initialText || 'Nuovo Testo',
       x: 50,
       y: 50,
       fontSize: 40,
@@ -707,13 +724,34 @@ const App: React.FC = () => {
     return p;
   };
 
+  const toBase64 = (url: string): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  };
+
   const performRetouch = async (sourceImage: string, prompt: string, actionId: any, isSilent: boolean = false, intensity: number = 50) => {
     if (activeIdx < 0) return "";
     
     if (!isSilent) setProcessing({ isProcessing: true, progress: 40, status: `Elaborazione neurale (${useHighQuality ? 'Ultra HD' : 'Fast'})...` });
     
     try {
-      const model = useHighQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
+      // Convert blob URL to base64 if needed
+      let base64Image = sourceImage;
+      if (sourceImage.startsWith('blob:')) {
+        base64Image = await toBase64(sourceImage);
+      }
+
+      const model = useHighQuality ? 'gemini-3.1-flash-image-preview' : 'gemini-2.5-flash-image';
       
       // Add intensity context to the prompt
       const intensityContext = `Apply this effect with an intensity of ${intensity}/100. ${
@@ -726,7 +764,7 @@ const App: React.FC = () => {
       let finalPrompt = autoMask ? `${basePrompt} Use Smart Auto-Masking to protect the subject and only affect the targeted areas.` : basePrompt;
       
       if ((actionId === RetouchAction.GENERATIVE_REMOVE || actionId === RetouchAction.REMOVE_REFLECTION) && brushMask.length > 0) {
-        finalPrompt += ` The area to be processed is defined by these coordinates: ${JSON.stringify(brushMask)}. Focus specifically on this area and blend it perfectly with the surroundings.`;
+        finalPrompt += ` The area to be processed is defined by these normalized coordinates (0-100 scale): ${JSON.stringify(brushMask)}. Focus specifically on this area to remove the target element (object, text, or reflection) and reconstruct the background perfectly.`;
       }
 
       if (actionId === RetouchAction.RED_EYE_REMOVAL && batch[activeIdx].faces.length > 0) {
@@ -734,7 +772,7 @@ const App: React.FC = () => {
         finalPrompt += ` Detected face landmarks for reference: ${JSON.stringify(faceCoords)}. Focus on the pupils of these detected eyes to remove the red-eye effect.`;
       }
 
-      const resultUrl = await geminiService.retouchImage(sourceImage, finalPrompt, model);
+      const resultUrl = await geminiService.retouchImage(base64Image, finalPrompt, model);
 
       const newResult: RetouchResult = {
         id: Date.now().toString() + Math.random(),
@@ -876,8 +914,14 @@ const App: React.FC = () => {
 
   const runBatchProcess = async () => {
     if (batch.length === 0 || isBatchProcessing) return;
+    
+    const action = RETOUCH_ACTIONS.find(a => a.id === activeAction);
+    if (!action) {
+      alert("Seleziona un'azione prima di avviare il batch.");
+      return;
+    }
+
     setIsBatchProcessing(true);
-    const action = RETOUCH_ACTIONS.find(a => a.id === activeAction)!;
     setProcessing({ isProcessing: true, progress: 0, status: `Inizializzazione Batch...` });
 
     for (let i = 0; i < batch.length; i++) {
@@ -888,8 +932,15 @@ const App: React.FC = () => {
       
       try {
          const img = batch[i];
-         const model = useHighQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
-         const resultUrl = await geminiService.retouchImage(img.currentUrl, action.prompt, model);
+         
+         // Convert blob URL to base64 if needed
+         let base64Image = img.currentUrl;
+         if (img.currentUrl.startsWith('blob:')) {
+           base64Image = await toBase64(img.currentUrl);
+         }
+
+         const model = useHighQuality ? 'gemini-3.1-flash-image-preview' : 'gemini-2.5-flash-image';
+         const resultUrl = await geminiService.retouchImage(base64Image, action.prompt, model);
          
          setBatch(prev => prev.map((b, idx) => {
             if (idx === i) {
@@ -949,8 +1000,8 @@ const App: React.FC = () => {
             </div>
             <div className="hidden lg:flex items-center gap-4 px-4 py-1.5 bg-white/5 rounded-full border border-white/5">
                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                  <span className="text-[8px] font-black uppercase text-slate-400">System Ready</span>
+                  <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${process.env.GEMINI_API_KEY ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                  <span className="text-[8px] font-black uppercase text-slate-400">{process.env.GEMINI_API_KEY ? 'AI Engine Active' : 'AI Engine Offline'}</span>
                </div>
                <div className="w-[1px] h-3 bg-white/10"></div>
                <div className="flex items-center gap-2">
@@ -1160,21 +1211,21 @@ const App: React.FC = () => {
                               </div>
                             )}
 
-                            {/* Text Management UI */}
-                            {activeAction === RetouchAction.ADD_TEXT && action.id === RetouchAction.ADD_TEXT && currentImage && (
+                            {/* Text & Watermark Management UI */}
+                            {(activeAction === RetouchAction.ADD_TEXT || activeAction === RetouchAction.ADD_WATERMARK) && (action.id === RetouchAction.ADD_TEXT || action.id === RetouchAction.ADD_WATERMARK) && currentImage && (
                               <div className="mt-4 space-y-4 bg-black/40 p-4 rounded-2xl border border-white/5 animate-in slide-in-from-top duration-300">
                                 <button 
-                                  onClick={addTextLayer}
+                                  onClick={() => addTextLayer(activeAction === RetouchAction.ADD_WATERMARK ? `© ${new Date().getFullYear()} Copyright` : 'Nuovo Testo')}
                                   className="w-full bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                                 >
-                                  <i className="fas fa-plus"></i> Aggiungi Testo
+                                  <i className="fas fa-plus"></i> {activeAction === RetouchAction.ADD_WATERMARK ? 'Aggiungi Filigrana' : 'Aggiungi Testo'}
                                 </button>
 
                                 <div className="space-y-3">
                                   {currentImage.textLayers.map((layer, lIdx) => (
                                     <div key={layer.id} className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-3">
                                       <div className="flex items-center justify-between">
-                                        <span className="text-[9px] font-black text-slate-500 uppercase">Layer {lIdx + 1}</span>
+                                        <span className="text-[9px] font-black text-slate-500 uppercase">{(activeAction === RetouchAction.ADD_TEXT || activeAction === RetouchAction.ADD_WATERMARK) ? (activeAction === RetouchAction.ADD_WATERMARK ? 'Filigrana' : 'Testo') : 'Layer'} {lIdx + 1}</span>
                                         <button onClick={() => removeTextLayer(layer.id)} className="text-slate-600 hover:text-red-500 transition-colors"><i className="fas fa-trash text-[10px]"></i></button>
                                       </div>
                                       
@@ -1818,7 +1869,7 @@ const App: React.FC = () => {
           <div className="h-28 bg-black/20 border-t border-white/5 flex items-center p-4 gap-4 overflow-x-auto custom-scrollbar shrink-0">
             {batch.map((item, idx) => (
               <div key={item.id} onClick={() => setActiveIdx(idx)} className={`relative h-20 aspect-square shrink-0 rounded-2xl overflow-hidden border-2 cursor-pointer transition-all ${activeIdx === idx ? 'border-indigo-500 scale-105 shadow-2xl' : 'border-transparent opacity-40 hover:opacity-100 hover:scale-105'}`}>
-                <img src={item.currentUrl} alt={item.name} className="w-full h-full object-cover" />
+                <img src={item.currentUrl} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 <button onClick={(e) => { e.stopPropagation(); removeFromBatch(idx); }} className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-[9px]"><i className="fas fa-times"></i></button>
                 {item.status === 'processing' && <div className="absolute inset-0 bg-indigo-600/40 flex items-center justify-center"><i className="fas fa-circle-notch animate-spin text-white"></i></div>}
                 {item.status === 'completed' && <div className="absolute bottom-1 right-1 bg-green-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[7px]"><i className="fas fa-check"></i></div>}

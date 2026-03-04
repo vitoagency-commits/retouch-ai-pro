@@ -9,7 +9,19 @@ interface BeforeAfterSliderProps {
 const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({ before, after }) => {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isResizing, setIsResizing] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const handleMove = (clientX: number) => {
     if (!containerRef.current) return;
@@ -48,10 +60,12 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({ before, after }) 
     >
       {/* After Image (Background) */}
       <img 
+        key={after}
         src={after} 
         alt="After" 
         className="absolute top-0 left-0 w-full h-full object-contain"
         draggable={false}
+        referrerPolicy="no-referrer"
       />
 
       {/* Before Image (Clipped Overlay) */}
@@ -62,12 +76,14 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({ before, after }) 
           willChange: 'width'
         }}
       >
-        <div className="absolute top-0 left-0 h-full" style={{ width: containerRef.current?.offsetWidth || '100vw' }}>
+        <div className="absolute top-0 left-0 h-full" style={{ width: containerWidth || '100%', minWidth: containerWidth || '100%' }}>
           <img 
+            key={before}
             src={before} 
             alt="Before" 
-            className="w-full h-full object-contain"
+            className="h-full w-full object-contain"
             draggable={false}
+            referrerPolicy="no-referrer"
           />
         </div>
         <div className="absolute top-4 left-4 bg-black/50 text-white px-2 py-1 text-xs rounded uppercase font-bold tracking-wider">Before</div>

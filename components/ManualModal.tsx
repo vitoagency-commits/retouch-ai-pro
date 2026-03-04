@@ -63,10 +63,14 @@ const ManualModal: React.FC<ManualModalProps> = ({ onClose }) => {
       },
       {
         title: "5. Dettaglio Strumenti (Tools)",
-        content: RETOUCH_ACTIONS.map(a => `- ${a.label}: ${a.description}`).join('\n')
+        content: RETOUCH_ACTIONS.map(a => `- ${a.label}: ${a.description}`).join('\n') + "\n- Generative Remove (Aggiornato): Ora ottimizzato per la rimozione di testi, loghi e filigrane complesse."
       },
       {
-        title: "6. Guida Interfaccia: Header (In Alto)",
+        title: "6. Gestione Livelli (Layers) & Watermark",
+        content: "La versione PRO introduce un sistema di livelli non distruttivo. Testi e filigrane vengono creati come oggetti indipendenti. Puoi spostarli, ridimensionarli o eliminarli dal pannello 'Livelli' senza alterare i pixel della foto originale."
+      },
+      {
+        title: "7. Guida Interfaccia: Header (In Alto)",
         content: "- Slider / Hold / Side: Cambia la modalità di visualizzazione prima/dopo. 'Side' affianca le due versioni.\n- System Ready / GPU Accelerated: Indicatori di stato del motore neurale e accelerazione hardware.\n- IT/EN Toggle: Cambia la lingua dell'interfaccia istantaneamente.\n- Importa: Carica una o più foto (supporto Batch)."
       },
       {
@@ -228,6 +232,9 @@ const ManualModal: React.FC<ManualModalProps> = ({ onClose }) => {
                     <div>
                       <h3 className="font-bold text-slate-900 text-sm">{action.label}</h3>
                       <p className="text-xs text-slate-500 mt-1 leading-relaxed">{action.description}</p>
+                      {action.id === 'GENERATIVE_REMOVE' && (
+                        <p className="text-[10px] text-indigo-600 font-bold mt-1">PRO: Ottimizzato per rimozione testi e loghi.</p>
+                      )}
                       {action.category && (
                         <span className="inline-block mt-2 px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-black uppercase tracking-widest">
                           {action.category}
@@ -236,6 +243,27 @@ const ManualModal: React.FC<ManualModalProps> = ({ onClose }) => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </section>
+
+            {/* Section 4.5: Layers System - NEW SECTION */}
+            <section className="border-b border-slate-200 pb-8 bg-indigo-900 text-white -mx-8 px-8 py-8 rounded-2xl">
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                <i className="fas fa-layer-group"></i>
+                Gestione Livelli (Layers)
+              </h2>
+              <p className="text-indigo-200 leading-relaxed mb-4 text-sm">
+                RetouchAI PRO adotta ora un sistema di <strong>Livelli non distruttivi</strong> per testi e filigrane.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white/10 p-4 rounded-xl border border-white/10">
+                  <h3 className="font-bold text-white text-xs uppercase tracking-widest mb-2">Editing Dinamico</h3>
+                  <p className="text-[11px] text-indigo-100">Puoi spostare, ruotare o cambiare il colore di un testo in qualsiasi momento. Il livello non viene "fuso" con la foto finché non decidi di esportarla.</p>
+                </div>
+                <div className="bg-white/10 p-4 rounded-xl border border-white/10">
+                  <h3 className="font-bold text-white text-xs uppercase tracking-widest mb-2">Rimozione Rapida</h3>
+                  <p className="text-[11px] text-indigo-100">Per eliminare una filigrana aggiunta con l'app, basta cliccare sull'icona del cestino nel pannello Livelli. Non è necessario usare il pennello correttivo.</p>
+                </div>
               </div>
             </section>
 

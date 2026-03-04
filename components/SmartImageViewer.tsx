@@ -47,39 +47,6 @@ const SmartImageViewer: React.FC<SmartImageViewerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Compute CSS Filters for Live Preview
-  const filters = useMemo(() => {
-    if (!grading) return {};
-
-    // 1. Standard Filters
-    const brightness = 100 + grading.exposure; // 100 is base
-    const contrast = 100 + grading.contrast;
-    const saturate = 100 + grading.saturation;
-    const sepia = grading.sepia || 0;
-    
-    const filterString = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) sepia(${sepia}%)`;
-
-    // 2. Warmth Overlay (Orange for heat, Blue for cool)
-    let warmthColor = 'transparent';
-    let warmthOpacity = 0;
-    if (grading.warmth > 0) {
-      warmthColor = '#ea580c'; // Orange-600
-      warmthOpacity = grading.warmth / 300; // Max 0.33 opacity
-    } else if (grading.warmth < 0) {
-      warmthColor = '#0284c7'; // Sky-600
-      warmthOpacity = Math.abs(grading.warmth) / 300;
-    }
-
-    // 3. Vignette (Radial Gradient)
-    const vignetteOpacity = grading.vignette / 100;
-
-    return {
-      filter: filterString,
-      warmth: { color: warmthColor, opacity: warmthOpacity },
-      vignette: vignetteOpacity
-    };
-  }, [grading]);
-
   const curveFilterId = useMemo(() => `curve-filter-${Math.random().toString(36).substr(2, 9)}`, []);
 
   const curveTables = useMemo(() => {
@@ -107,6 +74,42 @@ const SmartImageViewer: React.FC<SmartImageViewerProps> = ({
       blue: getTableValues(grading.curves.blue),
     };
   }, [grading?.curves]);
+
+  // Compute CSS Filters for Live Preview
+  const filters = useMemo(() => {
+    if (!grading) return {};
+
+    // 1. Standard Filters
+    const brightness = 100 + grading.exposure; // 100 is base
+    const contrast = 100 + grading.contrast;
+    const saturate = 100 + grading.saturation;
+    const sepia = grading.sepia || 0;
+    
+    const filterString = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) sepia(${sepia}%)`;
+
+    // Only add curve filter if tables are ready
+    const finalFilter = curveTables ? `${filterString} url(#${curveFilterId})` : filterString;
+
+    // 2. Warmth Overlay (Orange for heat, Blue for cool)
+    let warmthColor = 'transparent';
+    let warmthOpacity = 0;
+    if (grading.warmth > 0) {
+      warmthColor = '#ea580c'; // Orange-600
+      warmthOpacity = grading.warmth / 300; // Max 0.33 opacity
+    } else if (grading.warmth < 0) {
+      warmthColor = '#0284c7'; // Sky-600
+      warmthOpacity = Math.abs(grading.warmth) / 300;
+    }
+
+    // 3. Vignette (Radial Gradient)
+    const vignetteOpacity = grading.vignette / 100;
+
+    return {
+      filter: finalFilter,
+      warmth: { color: warmthColor, opacity: warmthOpacity },
+      vignette: vignetteOpacity
+    };
+  }, [grading, curveTables, curveFilterId]);
 
   const handleWheel = (e: React.WheelEvent) => {
     e.stopPropagation();
@@ -375,33 +378,30 @@ const SmartImageViewer: React.FC<SmartImageViewerProps> = ({
       >
         {/* SVG Filter for Curves */}
         {curveTables && (
-          <svg width="0" height="0" className="absolute">
-            <filter id={curveFilterId}>
-              <feComponentTransfer>
-                <feFuncR type="table" tableValues={curveTables.red} />
-                <feFuncG type="table" tableValues={curveTables.green} />
-                <feFuncB type="table" tableValues={curveTables.blue} />
-              </feComponentTransfer>
-              <feComponentTransfer>
-                <feFuncR type="table" tableValues={curveTables.rgb} />
-                <feFuncG type="table" tableValues={curveTables.rgb} />
-                <feFuncB type="table" tableValues={curveTables.rgb} />
-              </feComponentTransfer>
-            </filter>
-          </svg>
+          <div style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none' }} aria-hidden="true">
+            <svg width="1" height="1">
+              <filter id={curveFilterId} colorInterpolationFilters="sRGB">
+                <feComponentTransfer>
+                  <feFuncR type="table" tableValues={curveTables.red} />
+                  <feFuncG type="table" tableValues={curveTables.green} />
+                  <feFuncB type="table" tableValues={curveTables.blue} />
+                </feComponentTransfer>
+                <feComponentTransfer>
+                  <feFuncR type="table" tableValues={curveTables.rgb} />
+                  <feFuncG type="table" tableValues={curveTables.rgb} />
+                  <feFuncB type="table" tableValues={curveTables.rgb} />
+                </feComponentTransfer>
+              </filter>
+            </svg>
+          </div>
         )}
 
-        <div ref={contentRef} className={mode === 'slider' ? 'shadow-2xl' : 'relative shadow-2xl'}>
+        <div 
+          ref={contentRef} 
+          className={mode === 'slider' ? 'shadow-2xl w-[90vw] md:w-[70vw] lg:w-[60vw] aspect-video max-h-[85vh]' : 'relative shadow-2xl'}
+        >
           {mode === 'slider' ? (
-            // Note: Slider doesn't support live CSS preview on "After" easily without modifying the component deeply.
-            // For now, grading preview is best seen in 'hold' mode, but we can try to apply filter to the container
-            // However, applying to slider "After" image is tricky.
-            // Simplified: The slider component itself would need to accept styles.
-            // For this version, we apply the filter to the wrapper, which affects BOTH if we aren't careful.
-            // BUT: BeforeAfterSlider is an independent component.
-            // Recommendation: Switch to "Hold" mode when grading for best preview, or pass styles down.
-            // Let's pass styles down to a wrapper div inside.
-             <div style={{ filter: `${filters?.filter} url(#${curveFilterId})` }}>
+             <div className="w-full h-full" style={{ filter: filters?.filter }}>
                 {/* Vignette & Warmth Overlay for Slider Mode (Applies to whole slider area) */}
                 {grading && (
                   <>
@@ -413,13 +413,25 @@ const SmartImageViewer: React.FC<SmartImageViewerProps> = ({
              </div>
           ) : mode === 'side' ? (
             <div className="flex gap-4 p-4 h-full max-h-[85vh] w-[90vw]">
-              <div className="relative flex-1 bg-black/20 rounded-2xl overflow-hidden border border-white/5">
-                <img src={before} alt="Before" className="w-full h-full object-contain" />
+              <div className="relative flex-1 bg-black/20 rounded-2xl overflow-hidden border border-white/5 h-full">
+                <img 
+                  key={before}
+                  src={before} 
+                  alt="Before" 
+                  className="w-full h-full object-contain" 
+                  referrerPolicy="no-referrer"
+                />
                 <div className="absolute top-4 left-4 bg-black/50 backdrop-blur px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest text-white border border-white/10">Originale</div>
               </div>
-              <div className="relative flex-1 bg-black/20 rounded-2xl overflow-hidden border border-white/5">
-                <div style={{ filter: `${filters?.filter} url(#${curveFilterId})` }} className="w-full h-full">
-                   <img src={after} alt="After" className="w-full h-full object-contain" />
+              <div className="relative flex-1 bg-black/20 rounded-2xl overflow-hidden border border-white/5 h-full">
+                <div style={{ filter: filters?.filter }} className="w-full h-full">
+                   <img 
+                     key={after}
+                     src={after} 
+                     alt="After" 
+                     className="w-full h-full object-contain" 
+                     referrerPolicy="no-referrer"
+                   />
                    {grading && (
                       <>
                         <div className="absolute inset-0 pointer-events-none mix-blend-overlay" style={{ backgroundColor: filters?.warmth.color, opacity: filters?.warmth.opacity }}></div>
@@ -451,11 +463,13 @@ const SmartImageViewer: React.FC<SmartImageViewerProps> = ({
               )}
 
               {/* Image Container with Filters */}
-              <div className="relative" style={{ filter: isHolding ? 'none' : `${filters?.filter} url(#${curveFilterId})` }}>
+              <div className="relative" style={{ filter: isHolding ? 'none' : filters?.filter }}>
                   <img 
+                    key={isHolding ? before : after}
                     src={isHolding ? before : after} 
                     alt="View" 
                     className="max-h-[85vh] w-auto object-contain pointer-events-none" 
+                    referrerPolicy="no-referrer"
                   />
                   {/* Warmth Overlay (Only on After) */}
                   {!isHolding && grading && (

@@ -81,7 +81,7 @@ export const RETOUCH_ACTIONS: ActionDetail[] = [
     icon: <i className="fas fa-wand-sparkles"></i>,
     category: 'Global',
     description: 'Rimuove oggetti o ombre spennellando sull\'area interessata.',
-    prompt: 'Generative Removal: Identify the highlighted area and remove the object or shadow within it. Reconstruct the background texture (skin, grass, wall, etc.) to perfectly match the surrounding environment without leaving artifacts.'
+    prompt: 'Generative Removal: Identify the highlighted area and remove the object, text, watermark, logo, or shadow within it. Reconstruct the background texture (skin, grass, wall, fabric, etc.) to perfectly match the surrounding environment without leaving any artifacts or blurriness.'
   },
   {
     id: RetouchAction.NOISE_REDUCTION,
